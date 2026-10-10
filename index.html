@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Цифрки</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+* { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+body { background: #0a0e1a; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow-x: hidden; min-height: 100vh; padding-bottom: 30px; }
+body::before { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at 20% 10%, rgba(33,150,243,0.15) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(156,39,176,0.1) 0%, transparent 50%); pointer-events: none; z-index: 0; }
+
+.header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; position: sticky; top: 0; z-index: 100; backdrop-filter: blur(25px); background: rgba(10,14,26,0.9); border-bottom: 1px solid rgba(33,150,243,0.15); gap: 10px; }
+.header-left { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.back-btn { width: 36px; height: 36px; border-radius: 12px; background: rgba(33,150,243,0.15); border: 1px solid rgba(33,150,243,0.3); color: #42A5F5; font-size: 18px; font-weight: 900; cursor: pointer; display: none; align-items: center; justify-content: center; flex-shrink: 0; }
+.back-btn.show { display: flex; }
+.back-btn:active { transform: scale(0.92); }
+.logo { display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 900; flex-shrink: 0; }
+.logo-icon { font-size: 22px; }
+.logo-text { background: linear-gradient(135deg, #42A5F5, #9C27B0); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.header-stat { display: flex; align-items: center; gap: 5px; background: linear-gradient(135deg, rgba(33,150,243,0.15), rgba(156,39,176,0.08)); padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(33,150,243,0.3); }
+.header-stat-value { font-size: 13px; font-weight: 900; color: #FFD700; font-variant-numeric: tabular-nums; }
+
+.screen { display: none; padding: 16px; position: relative; z-index: 1; }
+.screen.active { display: block; }
+
+.level-bar-box { background: linear-gradient(135deg, rgba(20,25,40,0.9), rgba(15,18,30,0.9)); border-radius: 16px; padding: 14px 16px; margin-bottom: 16px; border: 1px solid rgba(33,150,243,0.15); }
+.level-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.level-label { font-size: 13px; font-weight: 900; color: #42A5F5; }
+.xp-label { font-size: 11px; color: #8892a6; font-weight: bold; }
+.xp-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+.xp-fill { height: 100%; background: linear-gradient(90deg, #42A5F5, #9C27B0); border-radius: 4px; transition: width 0.4s; }
+
+.hero { text-align: center; padding: 20px 0 15px; }
+.hero-icon { font-size: 80px; animation: float 3s infinite; margin-bottom: 12px; }
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+.hero-title { font-size: 28px; font-weight: 900; background: linear-gradient(135deg, #42A5F5, #9C27B0); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 6px; }
+.hero-sub { color: #8892a6; font-size: 12px; }
+
+.section-title { font-size: 20px; font-weight: 900; margin-bottom: 4px; }
+.section-sub { color: #8892a6; font-size: 12px; margin-bottom: 16px; }
+
+.card { background: linear-gradient(135deg, rgba(20,25,40,0.9), rgba(15,18,30,0.9)); border-radius: 18px; padding: 16px; margin-bottom: 12px; border: 1px solid rgba(33,150,243,0.1); cursor: pointer; transition: 0.15s; }
+.card:active { transform: scale(0.98); }
+.card.gold { border-color: rgba(255,193,7,0.4); background: linear-gradient(135deg, rgba(60,45,20,0.9), rgba(30,20,10,0.9)); }
+.card-header { display: flex; align-items: center; gap: 12px; }
+.card-icon { font-size: 30px; flex-shrink: 0; }
+.card-title { font-size: 15px; font-weight: 900; }
+.card-desc { font-size: 11px; color: #8892a6; margin-top: 3px; }
+
+.number-card { background: linear-gradient(180deg, #ffffff 0%, #e8e8e8 100%); color: #0a0a0a; border-radius: 22px; padding: 22px; margin: 16px 0; box-shadow: 0 15px 40px rgba(0,0,0,0.6); position: relative; overflow: hidden; display: none; }
+.number-card.show { display: block; animation: popIn 0.5s; }
+@keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+.number-card.legendary { animation: popIn 0.5s, goldGlow 2s infinite; }
+@keyframes goldGlow { 0%,100% { box-shadow: 0 15px 40px rgba(0,0,0,0.6), 0 0 30px rgba(255,215,0,0.6); } 50% { box-shadow: 0 15px 40px rgba(0,0,0,0.6), 0 0 60px rgba(255,215,0,1); } }
+.number-card.epic { box-shadow: 0 15px 40px rgba(0,0,0,0.6), 0 0 30px rgba(156,39,176,0.5); }
+.number-card.rare { box-shadow: 0 15px 40px rgba(0,0,0,0.6), 0 0 25px rgba(33,150,243,0.4); }
+
+.num-operator { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.num-op-left { display: flex; align-items: center; gap: 10px; }
+.num-op-logo { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 900; color: white; }
+.num-op-name { font-size: 15px; font-weight: 800; }
+.num-sim { width: 38px; height: 26px; background: linear-gradient(135deg, #e8c97a, #c9a548); border-radius: 5px; border: 1.5px solid #a08830; }
+
+.num-display { font-family: 'Courier New', monospace; font-size: 26px; font-weight: 900; text-align: center; margin: 16px 0; letter-spacing: 0.5px; word-break: break-all; }
+.num-display.spinning { opacity: 0.5; }
+
+.num-tags { display: flex; justify-content: space-between; background: rgba(0,0,0,0.06); padding: 12px; border-radius: 12px; }
+.num-tag { text-align: center; flex: 1; }
+.num-tag-label { font-size: 10px; color: #888; margin-bottom: 3px; }
+.num-tag-value { font-size: 12px; font-weight: 800; color: #0a0a0a; }
+
+.num-rarity { font-size: 13px; font-weight: bold; padding: 5px 12px; border-radius: 8px; display: inline-block; color: white; margin-top: 14px; }
+.num-price { font-size: 28px; font-weight: 900; color: #2E7D32; margin-top: 10px; }
+.num-reason { margin-top: 10px; font-size: 12px; color: #555; text-align: center; font-weight: 500; }
+
+.btn-spin { width: 100%; padding: 22px; font-size: 17px; font-weight: 900; border: none; border-radius: 18px; background: linear-gradient(135deg, #42A5F5, #1565C0); color: white; margin-top: 12px; cursor: pointer; box-shadow: 0 10px 30px rgba(33,150,243,0.4); letter-spacing: 1px; }
+.btn-spin:active { transform: scale(0.97); }
+.btn-spin:disabled { opacity: 0.5; }
+
+.actions { display: flex; gap: 10px; margin-top: 12px; }
+.actions button { flex: 1; padding: 16px; border: none; border-radius: 16px; font-weight: 900; font-size: 14px; cursor: pointer; color: white; }
+.btn-sell { background: linear-gradient(135deg, #48bb78, #2f855a); }
+.btn-keep { background: linear-gradient(135deg, #ffa726, #ef6c00); color: #000; }
+
+.coll-item { display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(20,25,40,0.9), rgba(15,18,30,0.9)); border-radius: 14px; padding: 14px; margin-bottom: 10px; border-left: 4px solid #4a5568; }
+.coll-item.rare { border-left-color: #42A5F5; }
+.coll-item.epic { border-left-color: #9C27B0; background: linear-gradient(135deg, rgba(40,20,55,0.9), rgba(20,15,30,0.9)); }
+.coll-item.legendary { border-left-color: #FFD700; background: linear-gradient(135deg, rgba(55,45,20,0.9), rgba(30,20,10,0.9)); }
+.coll-num { font-family: monospace; font-weight: 900; font-size: 14px; color: #fff; }
+.coll-rarity { font-size: 11px; color: #8892a6; margin-top: 3px; }
+.coll-price { font-size: 13px; font-weight: 900; color: #48bb78; }
+
+.profile-card { background: linear-gradient(135deg, rgba(33,150,243,0.15), rgba(156,39,176,0.08)); border: 1px solid rgba(33,150,243,0.3); border-radius: 20px; padding: 22px; text-align: center; margin-bottom: 14px; }
+.profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #42A5F5, #9C27B0); display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 12px; overflow: hidden; }
+.profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.profile-name { font-size: 20px; font-weight: 900; margin-bottom: 4px; }
+.profile-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+.profile-stat { background: rgba(0,0,0,0.3); border-radius: 12px; padding: 12px; }
+.profile-stat-value { font-size: 18px; font-weight: 900; color: #42A5F5; }
+.profile-stat-label { font-size: 10px; color: #8892a6; margin-top: 3px; text-transform: uppercase; }
+
+.empty { text-align: center; color: #6a7590; padding: 40px 20px; font-size: 13px; }
+
+.floating { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #42A5F5, #9C27B0); color: white; padding: 12px 22px; border-radius: 22px; font-weight: 900; font-size: 14px; z-index: 60; animation: slideUpFade 2s forwards; pointer-events: none; }
+@keyframes slideUpFade { 0% { opacity: 0; transform: translate(-50%, 30px) scale(0.8); } 20% { opacity: 1; transform: translate(-50%, 0) scale(1); } 80% { opacity: 1; transform: translate(-50%, -20px); } 100% { opacity: 0; transform: translate(-50%, -50px); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-left">
+        <button class="back-btn" id="backBtn" onclick="goBack()">←</button>
+        <div class="logo">
+            <span class="logo-icon">📱</span>
+            <span class="logo-text">Цифрки</span>
+        </div>
+    </div>
+    <div class="header-stat">
+        <span>💰</span>
+        <span class="header-stat-value" id="headerBalance">0</span>
+    </div>
+</div>
+
+<div class="screen active" id="screen-main">
+    <div class="level-bar-box">
+        <div class="level-info">
+            <div class="level-label">⭐ Ур. <span id="levelNum">1</span></div>
+            <div class="xp-label"><span id="xpNow">0</span> / <span id="xpNeed">1000</span></div>
+        </div>
+        <div class="xp-bar"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
+    </div>
+
+    <div class="hero">
+        <div class="hero-icon">📱</div>
+        <div class="hero-title">Цифрки</div>
+        <div class="hero-sub">Выбивай красивые номера · продавай · собирай коллекцию</div>
+    </div>
+
+    <div class="card" onclick="switchScreen('collection')">
+        <div class="card-header">
+            <div class="card-icon">📦</div>
+            <div><div class="card-title">Коллекция</div><div class="card-desc">Твои лучшие номера</div></div>
+        </div>
+    </div>
+
+    <div class="card" onclick="switchScreen('profile')">
+        <div class="card-header">
+            <div class="card-icon">👤</div>
+            <div><div class="card-title">Профиль</div><div class="card-desc">Статистика и рекорд</div></div>
+        </div>
+    </div>
+
+    <div class="number-card" id="numberCard">
+        <div class="num-operator">
+            <div class="num-op-left">
+                <div class="num-op-logo" id="numOpLogo">М</div>
+                <div class="num-op-name" id="numOpName">МТС</div>
+            </div>
+            <div class="num-sim"></div>
+        </div>
+        <div class="num-display" id="numDisplay">+7 --- --- -- --</div>
+        <div class="num-tags">
+            <div class="num-tag"><div class="num-tag-label">Регион</div><div class="num-tag-value" id="numRegion">Москва</div></div>
+            <div class="num-tag"><div class="num-tag-label">Редкость</div><div class="num-tag-value" id="numRarityTag">Обычный</div></div>
+        </div>
+        <div style="text-align:center;">
+            <div class="num-rarity" id="numRarity">⚪ Обычный</div>
+            <div class="num-price" id="numPrice">0 ₽</div>
+            <div class="num-reason" id="numReason"></div>
+        </div>
+    </div>
+
+    <div class="actions" id="actionBtns" style="display:none;">
+        <button class="btn-sell" onclick="sellNumber()">💸 ПРОДАТЬ</button>
+        <button class="btn-keep" onclick="keepNumber()">📦 В КОЛЛЕКЦИЮ</button>
+    </div>
+
+    <button class="btn-spin" id="spinBtn" onclick="generateNumber()">📞 ВЫБИТЬ НОМЕР (500 ₽)</button>
+</div>
+
+<div class="screen" id="screen-collection">
+    <div class="section-title">📦 Коллекция</div>
+    <div class="section-sub">Твои лучшие номера</div>
+    <div id="collectionList"></div>
+</div>
+
+<div class="screen" id="screen-profile">
+    <div class="section-title">👤 Профиль</div>
+    <div class="profile-card">
+        <div class="profile-avatar" id="profileAvatar">👤</div>
+        <div class="profile-name" id="profileName">Гость</div>
+        <div class="profile-stats">
+            <div class="profile-stat"><div class="profile-stat-value" id="statSpins">0</div><div class="profile-stat-label">Выбито</div></div>
+            <div class="profile-stat"><div class="profile-stat-value" id="statEarned">0</div><div class="profile-stat-label">Заработано</div></div>
+            <div class="profile-stat"><div class="profile-stat-value" id="statLegendary">0</div><div class="profile-stat-label">Легендарных</div></div>
+            <div class="profile-stat"><div class="profile-stat-value" id="statCollection">0</div><div class="profile-stat-label">В коллекции</div></div>
+        </div>
+    </div>
+</div>
+
+<script>
+let tg = null;
+try { tg = window.Telegram?.WebApp; } catch(e) {}
+if (tg) { tg.ready(); tg.expand(); }
+
+function $(id) { return document.getElementById(id); }
+function num(v) { v = Number(v); return (!isFinite(v) || isNaN(v)) ? 0 : v; }
+function fmt(n) { n = num(n); if (n >= 1e9) return (n/1e9).toFixed(2)+'B'; if (n >= 1e6) return (n/1e6).toFixed(2)+'M'; if (n >= 1e3) return (n/1e3).toFixed(1)+'K'; return Math.floor(n).toString(); }
+function fmtFull(n) { return Math.floor(num(n)).toLocaleString('ru-RU'); }
+
+function defaultState() {
+    return {
+        money: 5000, level: 1, xp: 0, totalSpins: 0, totalEarned: 0,
+        legendaryCount: 0, epicCount: 0, rareCount: 0,
+        collection: [], currentNum: null, bestNum: null,
+        userName: 'Гость', userId: null
+    };
+}
+
+let state = defaultState();
+try {
+    let saved = localStorage.getItem('cifrki_tg_v1');
+    if (saved) {
+        let p = JSON.parse(saved);
+        for (let k in state) if (p[k] !== undefined && p[k] !== null) state[k] = p[k];
+        if (!Array.isArray(state.collection)) state.collection = [];
+    }
+} catch(e) {}
+
+if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+    let u = tg.initDataUnsafe.user;
+    state.userName = (u.first_name || '') + (u.last_name ? ' ' + u.last_name : '');
+    state.userId = u.id;
+    if (u.photo_url) {
+        let av = $('profileAvatar');
+        if (av) av.innerHTML = '<img src="' + u.photo_url + '">';
+    }
+}
+
+function save() { try { localStorage.setItem('cifrki_tg_v1', JSON.stringify(state)); } catch(e) {} }
+
+function xpForLevel(level) { return Math.floor(1000 * Math.pow(1.5, level - 1)); }
+function addXP(amount) {
+    state.xp += num(amount);
+    while (state.xp >= xpForLevel(state.level)) {
+        state.xp -= xpForLevel(state.level);
+        state.level++;
+        state.money += 500 * state.level;
+        showFloating('⭐ Ур. ' + state.level + '! +' + fmtFull(500*state.level) + ' ₽');
+    }
+    save(); updateUI();
+}
+
+const OPERATORS = [
+    { name: 'МТС', color: '#e60000', prefix: '917' },
+    { name: 'Билайн', color: '#ffcc00', prefix: '962' },
+    { name: 'Мегафон', color: '#00b300', prefix: '925' },
+    { name: 'Tele2', color: '#000000', prefix: '900' },
+    { name: 'Yota', color: '#00aaff', prefix: '999' },
+    { name: 'Тинькофф', color: '#ffdd2d', prefix: '988' }
+];
+
+function evaluateNumber(allDigits) {
+    let score = 0, reasons = [];
+    let counts = {};
+    for (let i = 0; i < allDigits.length; i++) counts[allDigits[i]] = (counts[allDigits[i]] || 0) + 1;
+    let maxRepeat = 0;
+    for (let k in counts) if (counts[k] > maxRepeat) maxRepeat = counts[k];
+
+    if (maxRepeat === 7) { score += 100000; reasons.push("🔥 Все 7 цифр одинаковые!"); }
+    else if (maxRepeat === 6) { score += 30000; reasons.push("💎 6 одинаковых цифр"); }
+    else if (maxRepeat === 5) { score += 8000; reasons.push("⭐ 5 одинаковых цифр"); }
+    else if (maxRepeat === 4) { score += 1500; reasons.push("4 одинаковые цифры"); }
+    else if (maxRepeat === 3) { score += 250; reasons.push("3 одинаковые цифры"); }
+    else if (maxRepeat === 2) { score += 20; reasons.push("2 одинаковые цифры"); }
+
+    let maxSeq = 1;
+    for (let i = 0; i < allDigits.length - 1; i++) {
+        let dir = parseInt(allDigits[i+1]) - parseInt(allDigits[i]);
+        if (Math.abs(dir) !== 1) continue;
+        let seq = 2;
+        for (let j = i + 2; j < allDigits.length; j++) {
+            if (parseInt(allDigits[j]) - parseInt(allDigits[j-1]) === dir) seq++;
+            else break;
+        }
+        if (seq > maxSeq) maxSeq = seq;
+    }
+    if (maxSeq === 7) { score += 50000; reasons.push("🔥 Последовательность!"); }
+    else if (maxSeq === 6) { score += 15000; reasons.push("💎 6 подряд"); }
+    else if (maxSeq === 5) { score += 3500; reasons.push("⭐ 5 подряд"); }
+    else if (maxSeq === 4) { score += 600; reasons.push("4 подряд"); }
+    else if (maxSeq === 3) { score += 80; reasons.push("3 подряд"); }
+
+    if (allDigits === allDigits.split('').reverse().join('')) { score += 6000; reasons.push("🪞 Палиндром"); }
+    if (allDigits.slice(-3) === '000') { score += 1500; reasons.push("000 в конце"); }
+    if (allDigits.slice(-3) === '777') { score += 1200; reasons.push("777 в конце"); }
+
+    let pairs = 0;
+    for (let i = 0; i < allDigits.length - 1; i += 2) if (allDigits[i] === allDigits[i+1]) pairs++;
+    if (pairs >= 3) { score += 2500; reasons.push("3 зеркальные пары"); }
+    else if (pairs === 2) { score += 400; reasons.push("2 зеркальные пары"); }
+
+    let rarity, color, price;
+    if (score >= 40000) {
+        rarity = "🔥 Легендарный"; color = "linear-gradient(135deg, #FFD700, #FF8C00)";
+        let prog = Math.min((score - 40000) / 60000, 1);
+        price = 3000000 + prog * 97000000;
+    } else if (score >= 12000) {
+        rarity = "🟣 Эпический"; color = "linear-gradient(135deg, #9C27B0, #6A1B9A)";
+        let prog = Math.min((score - 12000) / 28000, 1);
+        price = 120000 + prog * 2880000;
+    } else if (score >= 3000) {
+        rarity = "🔵 Редкий"; color = "linear-gradient(135deg, #2196F3, #1565C0)";
+        price = 15000 + ((score - 3000) / 9000) * 105000;
+    } else if (score >= 1000) {
+        rarity = "🟢 Зеркальный"; color = "linear-gradient(135deg, #4CAF50, #2E7D32)";
+        price = 3000 + (score - 1000) * 5;
+    } else if (score >= 250) {
+        rarity = "🟡 Необычный"; color = "linear-gradient(135deg, #FFC107, #FF8F00)";
+        price = 600 + (score - 250) * 8;
+    } else {
+        rarity = "⚪ Обычный"; color = "#666";
+        price = 200 + score * 1.5;
+    }
+    price = Math.floor(price * (0.85 + Math.random() * 0.3));
+    if (reasons.length === 0) reasons.push("Обычный номер");
+    return { rarity: rarity, color: color, price: price, reasons: reasons.slice(0, 2), score: score };
+}
+
+function formatDisplay(d) {
+    let s = "";
+    for (let i = 0; i < d.length; i++) {
+        s += d[i];
+        if (i === 2 || i === 4) s += "-";
+    }
+    return s;
+}
+
+let isSpinning = false;
+function generateNumber() {
+    if (isSpinning) return;
+    if (state.currentNum) { keepNumber(); }
+    if (state.money < 500) { showFloating('❌ Мало денег'); return; }
+
+    isSpinning = true;
+    state.money -= 500;
+    state.totalSpins++;
+    updateUI();
+
+    let op = OPERATORS[Math.floor(Math.random() * OPERATORS.length)];
+    let digits = "";
+    for (let i = 0; i < 7; i++) digits += Math.floor(Math.random() * 10);
+    let evalRes = evaluateNumber(op.prefix + digits);
+
+    let card = $('numberCard');
+    card.className = 'number-card show';
+    card.style.display = 'block';
+    $('numOpLogo').style.background = op.color;
+    $('numOpLogo').innerText = op.name[0];
+    $('numOpName').innerText = op.name;
+    $('numRegion').innerText = ['Москва','СПб','Регион','Премиум'][Math.floor(Math.random()*4)];
+    $('numRarityTag').innerText = '...';
+    $('numRarity').innerText = '...';
+    $('numRarity').style.background = '#666';
+    $('numPrice').innerText = '...';
+    $('numReason').innerText = '';
+    $('actionBtns').style.display = 'none';
+    $('spinBtn').disabled = true;
+    $('spinBtn').innerText = '📞 ВЫБИВАЕМ...';
+
+    let isLegend = evalRes.score >= 40000;
+    let isEpic = evalRes.score >= 12000;
+    let speed = isLegend ? 50 : isEpic ? 40 : 30;
+    let duration = isLegend ? 1500 : isEpic ? 1100 : 700;
+
+    let start = Date.now();
+    let anim = setInterval(function() {
+        if (Date.now() - start < duration * 0.6) {
+            let t = "";
+            for (let i = 0; i < 7; i++) t += Math.floor(Math.random() * 10);
+            $('numDisplay').innerText = '+7 ' + op.prefix + ' ' + formatDisplay(t);
+            $('numDisplay').classList.add('spinning');
+        } else {
+            clearInterval(anim);
+            $('numDisplay').classList.remove('spinning');
+            let displayed = "";
+            let i = 0;
+            let stop = setInterval(function() {
+                if (i >= 7) { clearInterval(stop); finishSpin(op, digits, evalRes); return; }
+                displayed += digits[i];
+                let tail = "";
+                for (let k = i + 1; k < 7; k++) tail += "•";
+                $('numDisplay').innerText = '+7 ' + op.prefix + ' ' + formatDisplay(displayed + tail);
+                i++;
+            }, isEpic || isLegend ? 90 : 55);
+        }
+    }, speed);
+}
+
+function finishSpin(op, digits, evalRes) {
+    $('numDisplay').innerText = '+7 ' + op.prefix + ' ' + formatDisplay(digits);
+
+    let isLegend = evalRes.rarity.indexOf('Легендарный') !== -1;
+    let isEpic = evalRes.rarity.indexOf('Эпический') !== -1;
+    let isRare = evalRes.rarity.indexOf('Редкий') !== -1;
+
+    let finalPrice = Math.floor(evalRes.price * (1 + state.level * 0.1));
+    if (isLegend && finalPrice < 3000000) finalPrice = 3000000;
+    if (isEpic && finalPrice < 120000) finalPrice = 120000;
+
+    state.currentNum = {
+        number: '+7 ' + op.prefix + ' ' + formatDisplay(digits),
+        operator: op,
+        rarity: evalRes.rarity,
+        color: evalRes.color,
+        price: finalPrice,
+        region: $('numRegion').innerText
+    };
+
+    if (isLegend) state.legendaryCount++;
+    else if (isEpic) state.epicCount++;
+    else if (isRare) state.rareCount++;
+
+    if (!state.bestNum || finalPrice > state.bestNum.price) {
+        state.bestNum = JSON.parse(JSON.stringify(state.currentNum));
+    }
+
+    $('numRarityTag').innerText = evalRes.rarity;
+    $('numRarity').innerText = evalRes.rarity;
+    $('numRarity').style.background = evalRes.color;
+    $('numPrice').innerText = fmtFull(finalPrice) + ' ₽';
+    $('numReason').innerText = evalRes.reasons[0] || '';
+
+    if (isLegend) $('numberCard').classList.add('legendary');
+    else if (isEpic) $('numberCard').classList.add('epic');
+    else if (isRare) $('numberCard').classList.add('rare');
+
+    $('actionBtns').style.display = 'flex';
+    $('spinBtn').disabled = false;
+    $('spinBtn').innerText = '📞 ВЫБИТЬ ЕЩЁ (500 ₽)';
+
+    if (isLegend && navigator.vibrate) navigator.vibrate([100,50,100,50,200]);
+    else if (isEpic && navigator.vibrate) navigator.vibrate([80,40,80]);
+
+    save(); updateUI();
+    isSpinning = false;
+}
+
+function sellNumber() {
+    if (!state.currentNum) return;
+    let p = state.currentNum.price;
+    state.money += p;
+    state.totalEarned += p;
+    addXP(Math.floor(p / 1000));
+    showFloating('+ ' + fmtFull(p) + ' ₽');
+    state.currentNum = null;
+    $('numberCard').style.display = 'none';
+    $('actionBtns').style.display = 'none';
+    $('spinBtn').innerText = '📞 ВЫБИТЬ НОМЕР (500 ₽)';
+    save(); updateUI();
+}
+
+function keepNumber() {
+    if (!state.currentNum) return;
+    state.collection.push(state.currentNum);
+    showFloating('📦 В коллекции!');
+    state.currentNum = null;
+    $('numberCard').style.display = 'none';
+    $('actionBtns').style.display = 'none';
+    $('spinBtn').innerText = '📞 ВЫБИТЬ НОМЕР (500 ₽)';
+    save(); updateUI();
+}
+
+function updateUI() {
+    $('headerBalance').innerText = fmt(state.money);
+    $('levelNum').innerText = state.level;
+    $('xpNow').innerText = state.xp;
+    $('xpNeed').innerText = xpForLevel(state.level);
+    $('xpFill').style.width = Math.min(100, (state.xp / xpForLevel(state.level)) * 100) + '%';
+    $('profileName').innerText = state.userName;
+    $('statSpins').innerText = state.totalSpins;
+    $('statEarned').innerText = fmt(state.totalEarned);
+    $('statLegendary').innerText = state.legendaryCount;
+    $('statCollection').innerText = state.collection.length;
+    renderCollection();
+}
+
+function renderCollection() {
+    let el = $('collectionList');
+    if (state.collection.length === 0) {
+        el.innerHTML = '<div class="empty">Коллекция пуста</div>';
+        return;
+    }
+    let html = '';
+    [...state.collection].reverse().forEach(function(c) {
+        let cls = '';
+        if (c.rarity.indexOf('Легендарный') !== -1) cls = 'legendary';
+        else if (c.rarity.indexOf('Эпический') !== -1) cls = 'epic';
+        else if (c.rarity.indexOf('Редкий') !== -1) cls = 'rare';
+        html += '<div class="coll-item ' + cls + '">' +
+            '<div><div class="coll-num">' + c.number + '</div><div class="coll-rarity">' + c.rarity + '</div></div>' +
+            '<div class="coll-price">' + fmtFull(c.price) + ' ₽</div></div>';
+    });
+    el.innerHTML = html;
+}
+
+function showFloating(text) {
+    let el = document.createElement('div');
+    el.className = 'floating';
+    el.innerText = text;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2000);
+}
+
+let history = ['main'];
+function switchScreen(name) {
+    if (history[history.length - 1] !== name) { history.push(name); if (history.length > 10) history.shift(); }
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    $('screen-' + name).classList.add('active');
+    $('backBtn').classList.toggle('show', name !== 'main');
+    window.scrollTo(0, 0);
+}
+
+function goBack() {
+    if (history.length > 1) { history.pop(); let prev = history[history.length - 1]; switchScreen(prev); history.pop(); history.push(prev); }
+    else switchScreen('main');
+}
+
+updateUI();
+console.log('📱 Цифрки загружены! Telegram:', !!tg);
+</script>
+</body>
+                                                                                                  </html>
